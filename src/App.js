@@ -45,7 +45,7 @@ class App extends Component {
       'https://quotesondesign.com/wp-json/posts?filter[orderby]=rand&filter[posts_per_page]=1';
 
     // fetch needs no-cache set for this api
-    fetch(proxyURL, { cache: 'no-cache' })
+    fetch(url, { cache: 'no-cache' })
       .then(res => res.json())
       .then(
         /* destructor the array, to get to the object inside */
