@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import sanitizeHtml from 'sanitize-html';
 import ReactHtmlParser, { convertNodeToElement } from 'react-html-parser';
+import nprogress from 'nprogress'
+import 'nprogress/nprogress.css'
 import './App.css';
 
 class App extends Component {
@@ -17,7 +19,6 @@ class App extends Component {
     this.fetchQuote = this.fetchQuote.bind(this);
   }
   componentDidMount() {
-    console.log('Did mount');
     this.fetchQuote();
   }
   getTweetLink(cont, title) {
@@ -26,21 +27,22 @@ class App extends Component {
     return "https://twitter.com/intent/tweet?hashtags=quotes&text=" + encodeURIComponent(`"${textOnly}"\n${title}`);
   }
   fetchQuote() {
+    nprogress.start();
     this.setState({isLoaded: false})
     const proxyURL = "https://cors-anywhere.herokuapp.com/https://quotesondesign.com/wp-json/posts?filter[orderby]=rand&filter[posts_per_page]=1";
     const url = "https://quotesondesign.com/wp-json/posts?filter[orderby]=rand&filter[posts_per_page]=1";
+
     // fetch needs no-cache set for this api
     fetch(proxyURL, {cache: "no-cache"})
       .then(res => res.json())
       .then(
         /* destructor the array, to get to the object inside */
         ([result]) => {
-          // console.log(result);
           // The value of the property "custom_meta" is an object "result.custom_meta.Source"
           // it is not always available, this sets the default value to an empty object so we don't get a reference error
           const {title, content, custom_meta: { Source: source } = {} } = result;
           const tweetLink = this.getTweetLink(content, title);
-          // console.log('state before setState', this.state);
+          
           this.setState({
             title,
             content,
@@ -48,7 +50,7 @@ class App extends Component {
             tweetLink,
             isLoaded: true
           }, () => {
-            // console.log('state after setState', this.state);
+            nprogress.done();
           });
         },
         (error) => {
@@ -66,16 +68,9 @@ class App extends Component {
       {error &&
         <div className="error">Something went wrong</div>
       }
-
-      {!isLoaded &&
-        <div className="loading">Loading...</div>
-      }
-
-      {isLoaded &&
         <div>
           <h1 className="author" id="author">{title}</h1>
           <div className="quote">{ReactHtmlParser(content)}</div>
-  
           {source &&
           <div className="source">Source: {ReactHtmlParser(source, {
             transform: function (node,index) {
@@ -87,14 +82,9 @@ class App extends Component {
           }})}
           </div>
           }
-          {/* <div className="button-container">
-            <button className="button button--get-quote" onClick={this.fetchQuote}>Get New Quote</button>
-            <a className="button button--tweet-quote" href={tweetLink} target="_blank" rel="noopener noreferrer">Tweet Quote</a>
-          </div> */}
         </div>
-      }
         <div className="button-container">
-          <button className="button button--get-quote" onClick={this.fetchQuote}>Get New Quote</button>
+          <button className="button button--get-quote" onClick={this.fetchQuote} disabled={!isLoaded}>Get New Quote</button>
           <a className="button button--tweet-quote" href={tweetLink} target="_blank" rel="noopener noreferrer">Tweet Quote</a>
         </div>
       </div>
