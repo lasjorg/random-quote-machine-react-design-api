@@ -1,8 +1,11 @@
 import React, { Component } from 'react';
 import sanitizeHtml from 'sanitize-html';
-import ReactHtmlParser, { convertNodeToElement } from 'react-html-parser';
-import nprogress from 'nprogress'
-import 'nprogress/nprogress.css'
+import nprogress from 'nprogress';
+import 'nprogress/nprogress.css';
+import LoadingError from './components/LoadingError';
+import Quote from './components/Quote';
+import Source from './components/Source';
+import Buttons from './components/Buttons';
 import './App.css';
 
 class App extends Component {
@@ -13,80 +16,82 @@ class App extends Component {
       content: '',
       source: '',
       tweetLink: '',
+      didMount: false,
       isLoaded: false,
       error: null
-    }
+    };
     this.fetchQuote = this.fetchQuote.bind(this);
   }
   componentDidMount() {
+    setTimeout(() => {
+      this.setState({ didMount: true });
+    }, 0);
     this.fetchQuote();
   }
   getTweetLink(cont, title) {
     const cleanContent = sanitizeHtml(cont);
-    const textOnly = cleanContent.replace(/(<([^>]+)>)/gi, "").trim();
-    return "https://twitter.com/intent/tweet?hashtags=quotes&text=" + encodeURIComponent(`"${textOnly}"\n${title}`);
+    const textOnly = cleanContent.replace(/(<([^>]+)>)/gi, '').trim();
+    return (
+      'https://twitter.com/intent/tweet?hashtags=quotes&text=' +
+      encodeURIComponent(`"${textOnly}"\n${title}`)
+    );
   }
   fetchQuote() {
     nprogress.start();
-    this.setState({isLoaded: false})
-    const proxyURL = "https://cors-anywhere.herokuapp.com/https://quotesondesign.com/wp-json/posts?filter[orderby]=rand&filter[posts_per_page]=1";
-    const url = "https://quotesondesign.com/wp-json/posts?filter[orderby]=rand&filter[posts_per_page]=1";
+    this.setState({ isLoaded: false });
+    const proxyURL =
+      'https://cors-anywhere.herokuapp.com/https://quotesondesign.com/wp-json/posts?filter[orderby]=rand&filter[posts_per_page]=1';
+    const url =
+      'https://quotesondesign.com/wp-json/posts?filter[orderby]=rand&filter[posts_per_page]=1';
 
     // fetch needs no-cache set for this api
-    fetch(proxyURL, {cache: "no-cache"})
+    fetch(proxyURL, { cache: 'no-cache' })
       .then(res => res.json())
       .then(
         /* destructor the array, to get to the object inside */
         ([result]) => {
           // The value of the property "custom_meta" is an object "result.custom_meta.Source"
           // it is not always available, this sets the default value to an empty object so we don't get a reference error
-          const {title, content, custom_meta: { Source: source } = {} } = result;
-          const tweetLink = this.getTweetLink(content, title);
-          
-          this.setState({
+          const {
             title,
             content,
-            source,
-            tweetLink,
-            isLoaded: true
-          }, () => {
-            nprogress.done();
-          });
+            custom_meta: { Source: source } = {}
+          } = result;
+          const tweetLink = this.getTweetLink(content, title);
+
+          this.setState(
+            {
+              title,
+              content,
+              source,
+              tweetLink,
+              isLoaded: true
+            },
+            () => {
+              nprogress.done();
+            }
+          );
         },
-        (error) => {
+        error => {
           this.setState({
             isLoaded: true,
             error
           });
         }
-      )
+      );
   }
   render() {
-    const { title, content, tweetLink, source, isLoaded, error } = this.state;
+    const { title, content, tweetLink, source, isLoaded, error, didMount } = this.state;
     return (
-      <div id="quote-box" className="App">
-      {error &&
-        <div className="error">Something went wrong</div>
-      }
-        <div>
-          <h1 className="author" id="author">{title}</h1>
-          <div className="quote">{ReactHtmlParser(content)}</div>
-          {source &&
-          <div className="source">Source: {ReactHtmlParser(source, {
-            transform: function (node,index) {
-              if (node.type === 'tag' && node.name === 'a') {
-                node.attribs.target = '_blank';
-                node.attribs.rel = 'noopener noreferrer';
-                return convertNodeToElement(node, index);
-              }
-          }})}
-          </div>
-          }
-        </div>
-        <div className="button-container">
-          <button className="button button--get-quote" onClick={this.fetchQuote} disabled={!isLoaded}>Get New Quote</button>
-          <a className="button button--tweet-quote" href={tweetLink} target="_blank" rel="noopener noreferrer">Tweet Quote</a>
-        </div>
+      <div id="quote-box" className={`App ${didMount && 'visible'}`}>
+        {error && <LoadingError />}
+        <Quote title={title} content={content} />
+        {source && <Source source={source} />}
+        <Buttons
+          onClick={this.fetchQuote}
+          disabled={!isLoaded}
+          href={tweetLink}
+        />
       </div>
     );
   }
