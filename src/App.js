@@ -38,14 +38,23 @@ class App extends Component {
   }
   fetchQuote() {
     nprogress.start();
+
     this.setState({ isLoaded: false });
-    const proxyURL =
+
+    const apiBaseURL_proxy =
       'https://cors-anywhere.herokuapp.com/https://quotesondesign.com/wp-json/posts?filter[orderby]=rand&filter[posts_per_page]=1';
-    const url =
+    const apiBaseURL =
       'https://quotesondesign.com/wp-json/posts?filter[orderby]=rand&filter[posts_per_page]=1';
 
+    let apiURL;
+    if (process.env.NODE_ENV === 'development') {
+      apiURL = apiBaseURL_proxy + '?' + Math.round(new Date().getTime() / 1000);
+    } else if (process.env.NODE_ENV === 'production') {
+      apiURL = apiBaseURL + '?' + Math.round(new Date().getTime() / 1000);
+    }
+
     // fetch needs no-cache set for this api
-    fetch(url, { cache: 'no-cache' })
+    fetch(apiURL, { cache: 'no-cache' })
       .then(res => res.json())
       .then(
         /* destructor the array, to get to the object inside */
@@ -81,7 +90,15 @@ class App extends Component {
       );
   }
   render() {
-    const { title, content, tweetLink, source, isLoaded, error, didMount } = this.state;
+    const {
+      title,
+      content,
+      tweetLink,
+      source,
+      isLoaded,
+      error,
+      didMount
+    } = this.state;
     return (
       <div id="quote-box" className={`App ${didMount && 'visible'}`}>
         {error && <LoadingError />}
